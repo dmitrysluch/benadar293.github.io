@@ -139,7 +139,7 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
             pitch_onset_recall = (onset_total_tp[..., -N_KEYS:].sum() / onset_total_p[..., -N_KEYS:].sum()).item()
             pitch_onset_precision = (onset_total_tp[..., -N_KEYS:].sum() / onset_total_pp[..., -N_KEYS:].sum()).item()
 
-            transcription_loss = sum(transcription_losses.values())
+            transcription_loss = transcription_losses["loss/onset"]
             loss = transcription_loss
             loss.backward()
 
