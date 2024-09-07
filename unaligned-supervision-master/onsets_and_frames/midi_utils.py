@@ -381,8 +381,8 @@ def save_midi_alignments_and_predictions(save_path, data_path, inst_mapping,
     predicted_frames = frame_pred_np >= 0.5
 
 
-    # # Raw pitch with instrument prediction - will probably have lower recall, depending on the model's strength.
-    # frames2midi(save_path + '/' + data_path.replace('.flac', '').split('/')[-1] + prefix + '_pred_' + time_now + '.mid',
-    #             predicted_onsets[:, : inst_only], predicted_frames[:, : inst_only],
-    #             64. * predicted_onsets[:, : inst_only],
-    #             inst_mapping=inst_mapping)
+    # Raw pitch with instrument prediction - will probably have lower recall, depending on the model's strength.
+    frames2midi(save_path + '/' + data_path.replace('.flac', '').split('/')[-1] + prefix + '_pred_' + time_now + '.mid',
+                predicted_onsets[:, : inst_only], predicted_frames[:, : inst_only],
+                64. * predicted_onsets[:, : inst_only],
+                inst_mapping=inst_mapping)
