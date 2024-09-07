@@ -16,8 +16,7 @@ def midi_to_frames(midi, instruments, conversion_map=None):
     n_keys = MAX_MIDI - MIN_MIDI + 1
     midi_length = int((max(midi[:, 1]) + 1) * SAMPLE_RATE)
     n_steps = (midi_length - 1) // HOP_LENGTH + 1
-    n_channels = 1
-    label = torch.zeros(n_steps, n_keys * n_channels, dtype=torch.uint8)
+    label = torch.zeros(n_steps, n_keys, dtype=torch.uint8)
     for onset, offset, note, vel, instrument in midi:
         f = int(note) - MIN_MIDI
         if f >= n_keys or f < 0:
