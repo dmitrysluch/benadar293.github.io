@@ -135,17 +135,6 @@ class EMDATASET(Dataset):
         if 'frame_mask' in data:
             result['frame_mask'] = data['frame_mask'][step_begin:step_end, ...].to(self.device).float()
 
-
-        shape = result['frame'].shape
-        keys = N_KEYS
-        new_shape = shape[: -1] + (shape[-1] // keys, keys)
-        # frame and offset currently do not differentiate between instruments,
-        # so we compress them across instrument and save a copy of the original,
-        # as 'big_frame' and 'big_offset'
-        result['big_frame'] = result['frame']
-        result['frame'], _ = result['frame'].reshape(new_shape).max(axis=-2)
-        result['big_offset'] = result['offset']
-        result['offset'], _ = result['offset'].reshape(new_shape).max(axis=-2)
         return result
 
     def load(self, audio_path, tsv_path):
@@ -213,7 +202,7 @@ class EMDATASET(Dataset):
                                .replace('.flac', '.pt').replace('.mp3', '.pt'))
                     continue
                 midi = np.loadtxt(tsv, delimiter='\t', skiprows=1)
-                unaligned_label = midi_to_frames(midi, self.instruments, conversion_map=self.conversion_map)
+                unaligned_label = midi_to_frames(midi, None, conversion_map=self.conversion_map)
                 data = dict(path=self.labels_path + '/' + flac.split('/')[-1],
                             audio=audio, unaligned_label=unaligned_label)
                 torch.save(data, self.labels_path + '/' + flac.split('/')[-1]
@@ -294,8 +283,8 @@ class EMDATASET(Dataset):
             ####
 
             # We align based on likelihoods regardless of the octave (chroma features)
-            onset_pred_comp = compress_across_octave(onset_pred_np[:, -N_KEYS:])
-            onset_label_comp = compress_across_octave(unaligned_onsets[:, -N_KEYS:])
+            onset_pred_comp = compress_across_octave(onset_pred_np[:])
+            onset_label_comp = compress_across_octave(unaligned_onsets[:])
             # We can do DTW on super-frames since anyway we search for local max afterwards
             onset_pred_comp = compress_time(onset_pred_comp, DTW_FACTOR)
             onset_label_comp = compress_time(onset_label_comp, DTW_FACTOR)
@@ -326,7 +315,7 @@ class EMDATASET(Dataset):
                     t_sources_extended = existing_eliminated
 
                 t_src = max(t_sources_extended, key=lambda x: onset_pred_np[x, f]) # t_src is the most likely time in the local neighborhood for this note onset
-                f_pitch = (len(self.instruments) * N_KEYS) + (f % N_KEYS)
+                f_pitch = f
                 if onset_pred_np[t_src, f_pitch] < NEG: # filter negative according to pitch-only likelihood (can use f instead)
                     continue
                 aligned_onsets[t_src, f] = 1 # set the label
@@ -353,9 +342,6 @@ class EMDATASET(Dataset):
                 if t_off_src < len(aligned_offsets):
                     aligned_offsets[t_off_src, f] = 1
 
-            # eliminate instruments that do not exist in the unaligned midi
-            inactive_instruments, active_instruments_list = get_inactive_instruments(unaligned_onsets, len(aligned_onsets))
-            onset_pred_np[inactive_instruments] = 0
 
             pseudo_onsets = (onset_pred_np >= POS) & (~aligned_onsets)
             inst_only = len(self.instruments) * N_KEYS

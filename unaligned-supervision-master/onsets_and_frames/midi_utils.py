@@ -16,36 +16,23 @@ def midi_to_frames(midi, instruments, conversion_map=None):
     n_keys = MAX_MIDI - MIN_MIDI + 1
     midi_length = int((max(midi[:, 1]) + 1) * SAMPLE_RATE)
     n_steps = (midi_length - 1) // HOP_LENGTH + 1
-    n_channels = len(instruments) + 1
+    n_channels = 1
     label = torch.zeros(n_steps, n_keys * n_channels, dtype=torch.uint8)
     for onset, offset, note, vel, instrument in midi:
         f = int(note) - MIN_MIDI
-        if 104 > instrument > 87 or instrument > 111:
-            continue
         if f >= n_keys or f < 0:
             continue
         assert 0 < vel < 128
-        instrument = int(instrument)
-        if conversion_map is not None:
-            if instrument not in conversion_map:
-                continue
-            instrument = conversion_map[instrument]
         left = int(round(onset * SAMPLE_RATE / HOP_LENGTH))
         onset_right = min(n_steps, left + HOPS_IN_ONSET)
         frame_right = int(round(offset * SAMPLE_RATE / HOP_LENGTH))
         frame_right = min(n_steps, frame_right)
         offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
-        if int(instrument) not in instruments:
-            continue
-        chan = instruments.index(int(instrument))
-        label[left:onset_right, n_keys * chan + f] = 3
-        label[onset_right:frame_right, n_keys * chan + f] = 2
-        label[frame_right:offset_right, n_keys * chan + f] = 1
 
-        inv_chan = len(instruments)
-        label[left:onset_right, n_keys * inv_chan + f] = 3
-        label[onset_right:frame_right, n_keys * inv_chan + f] = 2
-        label[frame_right:offset_right, n_keys * inv_chan + f] = 1
+        label[left:onset_right, f] = 3
+        label[onset_right:frame_right, f] = 2
+        label[frame_right:offset_right, f] = 1
+
     return label
 
 '''
@@ -372,7 +359,6 @@ def parse_midi_multi(path, force_instrument=None):
 def save_midi_alignments_and_predictions(save_path, data_path, inst_mapping,
                                          aligned_onsets, aligned_frames,
                                          onset_pred_np, frame_pred_np, prefix='', use_time=True):
-    inst_only = len(inst_mapping) * N_KEYS
     time_now = datetime.now().strftime('%y%m%d-%H%M%S') if use_time else ''
     if len(prefix) > 0:
         prefix = '_{}'.format(prefix)
@@ -380,8 +366,8 @@ def save_midi_alignments_and_predictions(save_path, data_path, inst_mapping,
     # Save the aligned label. If training on a small dataset or a single performance in order to label it for later adding it
     # to a large dataset, it is recommended to use this MIDI as a label.
     frames2midi(save_path + '/' + data_path.replace('.flac', '').split('/')[-1] + prefix + '_alignment_' + time_now + '.mid',
-                aligned_onsets[:, : inst_only], aligned_frames[:, : inst_only],
-                64. * aligned_onsets[:, : inst_only],
+                aligned_onsets[:], aligned_frames[:],
+                64. * aligned_onsets[:],
                 inst_mapping=inst_mapping)
 
 
@@ -400,18 +386,3 @@ def save_midi_alignments_and_predictions(save_path, data_path, inst_mapping,
     #             predicted_onsets[:, : inst_only], predicted_frames[:, : inst_only],
     #             64. * predicted_onsets[:, : inst_only],
     #             inst_mapping=inst_mapping)
-
-
-    # Pitch prediction played on the piano - will have high recall, since it does not differentiate between instruments.
-    frames2midi_pitch(save_path + '/' + data_path.replace('.flac', '').split('/')[-1] + prefix + '_pred_pitch_' + time_now + '.mid',
-                      predicted_onsets[:, -N_KEYS:], predicted_frames[:, -N_KEYS:],
-                      64. * predicted_onsets[:, -N_KEYS:])
-
-
-    # Pitch prediction, with choice of most likely instrument for each detected note.
-    if len(inst_mapping) > 1:
-        max_pred_onsets = max_inst(onset_pred_np)
-        frames2midi(save_path + '/' + data_path.replace('.flac', '').split('/')[-1] + prefix + '_pred_inst_' + time_now + '.mid',
-                    max_pred_onsets[:, : inst_only], predicted_frames[:, : inst_only],
-                    64. * max_pred_onsets[:, : inst_only],
-                    inst_mapping=inst_mapping)
