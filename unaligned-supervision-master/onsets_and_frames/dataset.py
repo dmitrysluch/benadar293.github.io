@@ -177,12 +177,12 @@ class EMDATASET(Dataset):
         print('loading pts...')
         for flac, tsv in tqdm(files):
             print('flac, tsv', flac, tsv)
-            if os.path.isfile(self.labels_path + '/' +
-                              flac.split('/')[-1].replace('.flac', '.pt')):
-                print(self.labels_path + '/' +
-                              flac.split('/')[-1].replace('.flac', '.pt'))
-                self.pts[flac] = torch.load(self.labels_path + '/' +
-                              flac.split('/')[-1].replace('.flac', '.pt'))
+            if False:
+                pass
+            # if os.path.isfile(self.labels_path + '/' +
+            #                   flac.split('/')[-1].replace('.flac', '.pt')):
+            #     self.pts[flac] = torch.load(self.labels_path + '/' +
+            #                   flac.split('/')[-1].replace('.flac', '.pt'))
             else:
                 if flac.count('#') != 2:
                     print('two #', flac)
@@ -199,16 +199,16 @@ class EMDATASET(Dataset):
                     assert '#' in flac
                     data = {'audio': audio}
                     self.pts[flac] = data
-                    torch.save(data,
-                               self.labels_path + '/' + flac.split('/')[-1]
-                               .replace('.flac', '.pt').replace('.mp3', '.pt'))
+                    # torch.save(data,
+                    #            self.labels_path + '/' + flac.split('/')[-1]
+                    #            .replace('.flac', '.pt').replace('.mp3', '.pt'))
                     continue
                 midi = np.loadtxt(tsv, delimiter='\t', skiprows=1)
                 unaligned_label = midi_to_frames(midi, None, conversion_map=self.conversion_map)
                 data = dict(path=self.labels_path + '/' + flac.split('/')[-1],
                             audio=audio, unaligned_label=unaligned_label)
-                torch.save(data, self.labels_path + '/' + flac.split('/')[-1]
-                               .replace('.flac', '.pt').replace('.mp3', '.pt'))
+                # torch.save(data, self.labels_path + '/' + flac.split('/')[-1]
+                #                .replace('.flac', '.pt').replace('.mp3', '.pt'))
                 self.pts[flac] = data
 
     '''
