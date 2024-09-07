@@ -179,6 +179,8 @@ class EMDATASET(Dataset):
             print('flac, tsv', flac, tsv)
             if os.path.isfile(self.labels_path + '/' +
                               flac.split('/')[-1].replace('.flac', '.pt')):
+                print(self.labels_path + '/' +
+                              flac.split('/')[-1].replace('.flac', '.pt'))
                 self.pts[flac] = torch.load(self.labels_path + '/' +
                               flac.split('/')[-1].replace('.flac', '.pt'))
             else:
