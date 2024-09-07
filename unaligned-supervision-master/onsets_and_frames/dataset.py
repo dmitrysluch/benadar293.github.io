@@ -55,8 +55,8 @@ class EMDATASET(Dataset):
         return len(self.data)
 
     def files(self, groups):
-        self.path = 'NoteEM_audio'
-        tsvs_path = 'NoteEM_tsv'
+        self.path = '/content/train'
+        tsvs_path = '/content/labels'
         res = []
         good_ids = list(range(2075, 2084))
         # good_ids += list(range(1817, 1820))
@@ -70,7 +70,7 @@ class EMDATASET(Dataset):
                 curr_fls_pth = self.path + '/' + group + '#{}'.format(shft)
                 fls = os.listdir(curr_fls_pth)
                 fls = sorted(fls)
-                for f, t in zip(fls, tsvs):
+                for f, t in list(zip(fls, tsvs))[:5]:
                     # #### MusicNet
                     if 'MusicNet' in group:
                         if all([str(elem) not in f for elem in good_ids]):

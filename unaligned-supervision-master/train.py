@@ -12,6 +12,7 @@ from onsets_and_frames import *
 from onsets_and_frames.dataset import EMDATASET
 from torch.nn import DataParallel
 from onsets_and_frames.transcriber import load_weights
+from subprocess import run
 
 
 def set_diff(model, diff=True):
@@ -73,19 +74,8 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
                         )
     print('len dataset', len(dataset), len(dataset.data))
 
-    #####
-    if not multi_ckpt:
-        model_complexity = 64 if '512' in transcriber_ckpt else 48
-        saved_transcriber = torch.load(transcriber_ckpt).cpu()
-        # We create a new transcriber with N_KEYS classes for each instrument:
-        transcriber = OnsetsAndFrames(N_MELS, (MAX_MIDI - MIN_MIDI + 1),
-                                              model_complexity,
-                                    onset_complexity=1., n_instruments=len(dataset.instruments) + 1).to(device)
-        # We load weights from the saved pitch-only checkkpoint and duplicate the final layer as an initialization:
-        load_weights(transcriber, saved_transcriber, n_instruments=len(dataset.instruments) + 1)
-    else:
-        # The checkpoint is already instrument-sensitive
-        transcriber = torch.load(transcriber_ckpt).to(device)
+    # Single instrument model
+    transcriber = torch.load(transcriber_ckpt).to(device)
 
     # We recommend to train first only onset detection. This will already give good note durations because the combined stack receives
     # information from the onset stack
@@ -100,8 +90,6 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
     optimizer.zero_grad()
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
     for epoch in range(1, epochs + 1):
-        if epoch == 1:
-            ghost = torch.ones((100, 100), dtype=float).to('cuda:1') # occupy another gpu until transcriber training begins
         print('epoch', epoch)
         if epoch > 1:
             del loader
@@ -127,10 +115,6 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
         onset_total_tp = 0.
         onset_total_pp = 0.
         onset_total_p = 0.
-
-        if epoch == 1:
-            del ghost
-            torch.cuda.empty_cache()
 
         loader_cycle = cycle(loader)
         for _ in tqdm(range(iterations)):
@@ -167,11 +151,14 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
             print('loss:', sum(total_loss) / len(total_loss), 'Onset Precision:', onset_precision, 'Onset Recall', onset_recall,
                                                             'Pitch Onset Precision:', pitch_onset_precision, 'Pitch Onset Recall', pitch_onset_recall)
 
-        save_condition = epoch % checkpoint_interval == 1
-        if save_condition:
-            torch.save(transcriber, os.path.join(logdir, 'transcriber_{}.pt'.format(epoch)))
-            torch.save(optimizer.state_dict(), os.path.join(logdir, 'last-optimizer-state.pt'))
-            torch.save({'instrument_mapping': dataset.instruments},
-                       os.path.join(logdir, 'instrument_mapping.pt'.format(epoch)))
+        
+        model_path = os.path.join(logdir, 'transcriber_{}.pt'.format(epoch))
+        torch.save(transcriber, model_path)
+        run(["aws", "s3", "cp", model_path, "s3://chp"])
+        opt_path = os.path.join(logdir, 'last-optimizer-state.pt')
+        torch.save(optimizer.state_dict(), opt_path)
+        run(["aws", "s3", "cp", opt_path, "s3://chp"])
+        torch.save({'instrument_mapping': dataset.instruments},
+                   os.path.join(logdir, 'instrument_mapping.pt'.format(epoch)))
 
 

@@ -44,7 +44,7 @@ class ConvStack(nn.Module):
 class OnsetsAndFrames(nn.Module):
     def __init__(self, input_features, output_features, model_complexity=48,
                  onset_complexity=1,
-                 n_instruments=13):
+                 n_instruments=1):
         nn.Module.__init__(self)
         model_size = model_complexity * 16
         sequence_model = lambda input_size, output_size: BiLSTM(input_size, output_size // 2)
