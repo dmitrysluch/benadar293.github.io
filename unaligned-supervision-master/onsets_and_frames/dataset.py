@@ -266,6 +266,8 @@ class EMDATASET(Dataset):
             peaks = get_peaks(onset_pred, 3) # we only want local peaks, in a 7-frame neighborhood, 3 to each side.
             onset_pred[~peaks] = 0
 
+            print(unaligned_onsets.shape)
+
             unaligned_onsets = (data['unaligned_label'] == 3).float().numpy()
             unaligned_frames = (data['unaligned_label'] >= 2).float().numpy()
 
@@ -273,8 +275,8 @@ class EMDATASET(Dataset):
             frame_pred_np = frame_pred.numpy()
 
             ####
-            pred_bag_of_notes = (onset_pred_np[:, -N_KEYS:] >= 0.5).sum(axis=0)
-            gt_bag_of_notes = unaligned_onsets[:, -N_KEYS:].astype(bool).sum(axis=0)
+            pred_bag_of_notes = (onset_pred_np[:] >= 0.5).sum(axis=0)
+            gt_bag_of_notes = unaligned_onsets[:].astype(bool).sum(axis=0)
             bon_dist = (((pred_bag_of_notes - gt_bag_of_notes) ** 2).sum()) ** 0.5
             # print('pred bag of notes', pred_bag_of_notes)
             # print('gt bag of notes', gt_bag_of_notes)
