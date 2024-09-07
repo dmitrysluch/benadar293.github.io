@@ -70,7 +70,7 @@ class EMDATASET(Dataset):
                 curr_fls_pth = self.path + '/' + group + '#{}'.format(shft)
                 fls = os.listdir(curr_fls_pth)
                 fls = sorted(fls)
-                for f, t in list(zip(fls, tsvs))[:5]:
+                for f, t in list(zip(fls, tsvs)):
                     # #### MusicNet
                     if 'MusicNet' in group:
                         if all([str(elem) not in f for elem in good_ids]):
