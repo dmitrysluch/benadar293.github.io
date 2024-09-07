@@ -59,7 +59,7 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
 
     os.makedirs(labels_path, exist_ok=True)
 
-    train_groups = ['Bach Brandenburg Concerto 1 A']
+    train_groups = ['train']
 
     conversion_map = None
     instrument_map = None
