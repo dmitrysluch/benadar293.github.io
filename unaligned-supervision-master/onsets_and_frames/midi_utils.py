@@ -32,6 +32,7 @@ def midi_to_frames(midi, instruments, conversion_map=None):
         label[onset_right:frame_right, f] = 2
         label[frame_right:offset_right, f] = 1
 
+    print("WTF", label.shape)
     return label
 
 '''
