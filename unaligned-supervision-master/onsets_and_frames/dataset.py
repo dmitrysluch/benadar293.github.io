@@ -266,10 +266,10 @@ class EMDATASET(Dataset):
             peaks = get_peaks(onset_pred, 3) # we only want local peaks, in a 7-frame neighborhood, 3 to each side.
             onset_pred[~peaks] = 0
 
-            print(unaligned_onsets.shape)
-
             unaligned_onsets = (data['unaligned_label'] == 3).float().numpy()
             unaligned_frames = (data['unaligned_label'] >= 2).float().numpy()
+
+            print(unaligned_onsets.shape)
 
             onset_pred_np = onset_pred.numpy()
             frame_pred_np = frame_pred.numpy()
