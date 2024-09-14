@@ -43,8 +43,7 @@ class ConvStack(nn.Module):
 
 class OnsetsAndFrames(nn.Module):
     def __init__(self, input_features, output_features, model_complexity=48,
-                 onset_complexity=1,
-                 n_instruments=1):
+                 onset_complexity=1):
         nn.Module.__init__(self)
         model_size = model_complexity * 16
         sequence_model = lambda input_size, output_size: BiLSTM(input_size, output_size // 2)
@@ -53,7 +52,7 @@ class OnsetsAndFrames(nn.Module):
         self.onset_stack = nn.Sequential(
             ConvStack(input_features, onset_model_size),
             sequence_model(onset_model_size, onset_model_size),
-            nn.Linear(onset_model_size, output_features * n_instruments),
+            nn.Linear(onset_model_size, output_features),
             nn.Sigmoid()
         )
         self.offset_stack = nn.Sequential(
@@ -74,7 +73,7 @@ class OnsetsAndFrames(nn.Module):
         )
         self.velocity_stack = nn.Sequential(
             ConvStack(input_features, model_size),
-            nn.Linear(model_size, output_features * n_instruments)
+            nn.Linear(model_size, output_features)
         )
 
     def forward(self, mel):
@@ -111,12 +110,6 @@ class OnsetsAndFrames(nn.Module):
         else:
             onset_pred, offset_pred, _, frame_pred, velocity_pred = parallel_model(mel)
 
-        if multi:
-            onset_pred = onset_pred[..., : N_KEYS]
-            offset_pred = offset_pred[..., : N_KEYS]
-            frame_pred = frame_pred[..., : N_KEYS]
-            velocity_pred = velocity_pred[..., : N_KEYS]
-
         predictions = {
             'onset': onset_pred.reshape(*onset_label.shape),
             'offset': offset_pred.reshape(*offset_label.shape),
@@ -135,25 +128,25 @@ class OnsetsAndFrames(nn.Module):
         if 'velocity' in batch:
             losses['loss/velocity'] = self.velocity_loss(predictions['velocity'], velocity_label, onset_label)
 
-        onset_mask = 1. * onset_label
-        onset_mask[..., : -N_KEYS] *= (positive_weight - 1)
-        onset_mask[..., -N_KEYS:] *= (inv_positive_weight - 1)
-        onset_mask += 1
-        if 'onset_mask' in batch:
-            onset_mask = onset_mask * batch['onset_mask']
+        # onset_mask = 1. * onset_label
+        # onset_mask[..., : -N_KEYS] *= (positive_weight - 1)
+        # onset_mask[..., -N_KEYS:] *= (inv_positive_weight - 1)
+        # onset_mask += 1
+        # if 'onset_mask' in batch:
+        #     onset_mask = onset_mask * batch['onset_mask']
 
-        offset_mask = 1. * offset_label
-        offset_positive_weight = 2.
-        offset_mask *= (offset_positive_weight - 1)
-        offset_mask += 1.
+        # offset_mask = 1. * offset_label
+        # offset_positive_weight = 2.
+        # offset_mask *= (offset_positive_weight - 1)
+        # offset_mask += 1.
 
-        frame_mask = 1. * frame_label
-        frame_positive_weight = 2.
-        frame_mask *= (frame_positive_weight - 1)
-        frame_mask += 1.
+        # frame_mask = 1. * frame_label
+        # frame_positive_weight = 2.
+        # frame_mask *= (frame_positive_weight - 1)
+        # frame_mask += 1.
 
-        for loss_key, mask in zip(['onset', 'offset', 'frame'], [onset_mask, offset_mask, frame_mask]):
-            losses['loss/' + loss_key] = (mask * losses['loss/' + loss_key]).mean()
+        # for loss_key, mask in zip(['onset', 'offset', 'frame'], [onset_mask, offset_mask, frame_mask]):
+        #     losses['loss/' + loss_key] = (mask * losses['loss/' + loss_key]).mean()
 
         return predictions, losses
 

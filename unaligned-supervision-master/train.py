@@ -39,7 +39,7 @@ def config():
     sequence_length = SEQ_LEN #if HOP_LENGTH == 512 else 3 * SEQ_LEN // 4
 
     iterations = 1000 # per epoch
-    learning_rate = 0.001
+    learning_rate = 0.0001
     learning_rate_decay_steps = 10000
     clip_gradient_norm = False #3
     epochs = 15
