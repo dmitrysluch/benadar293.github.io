@@ -39,7 +39,7 @@ def config():
     sequence_length = SEQ_LEN #if HOP_LENGTH == 512 else 3 * SEQ_LEN // 4
 
     iterations = 1000 # per epoch
-    learning_rate = 0.0001
+    learning_rate = 0.001
     learning_rate_decay_steps = 10000
     clip_gradient_norm = False #3
     epochs = 15
@@ -98,21 +98,20 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
 
         POS = 1.1 # Pseudo-label positive threshold (value > 1 means no pseudo label).
         NEG = -0.1 # Pseudo-label negative threshold (value < 0 means no pseudo label).
-        if epoch > 1:
-            with torch.no_grad():
-                dataset.update_pts(parallel_transcriber,
-                                   POS=POS,
-                                   NEG=NEG,
-                                   to_save=logdir + '/alignments', # MIDI alignments and predictions will be saved here
-                                   first=epoch == 1,
-                                   update=True,
-                                   BEST_BON=epoch > 5 # after 5 epochs, update label only if bag of notes distance improved
-                                   )
-        else:
-            for data in dataset.pts.values():
-                if 'unaligned_label' not in data:
-                    continue
-                data['label'] = data['unaligned_label']
+        with torch.no_grad():
+            dataset.update_pts(parallel_transcriber,
+                               POS=POS,
+                               NEG=NEG,
+                               to_save=logdir + '/alignments', # MIDI alignments and predictions will be saved here
+                               first=epoch == 1,
+                               update=epoch > 3,
+                               BEST_BON=epoch > 5 # after 5 epochs, update label only if bag of notes distance improved
+                               )
+        # else:
+        #     for data in dataset.pts.values():
+        #         if 'unaligned_label' not in data:
+        #             continue
+        #         data['label'] = data['unaligned_label']
         loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
         total_loss = []
