@@ -107,11 +107,11 @@ def train(logdir, device, iterations, checkpoint_interval, batch_size, sequence_
                                update=epoch > 3,
                                BEST_BON=epoch > 5 # after 5 epochs, update label only if bag of notes distance improved
                                )
-        # else:
-        #     for data in dataset.pts.values():
-        #         if 'unaligned_label' not in data:
-        #             continue
-        #         data['label'] = data['unaligned_label']
+        if epoch == 1:
+            for data in dataset.pts.values():
+                if 'unaligned_label' not in data:
+                    continue
+                data['label'] = data['unaligned_label']
         loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
         total_loss = []
