@@ -145,8 +145,8 @@ class OnsetsAndFrames(nn.Module):
         # frame_mask *= (frame_positive_weight - 1)
         # frame_mask += 1.
 
-        # for loss_key, mask in zip(['onset', 'offset', 'frame'], [onset_mask, offset_mask, frame_mask]):
-        #     losses['loss/' + loss_key] = (mask * losses['loss/' + loss_key]).mean()
+        for loss_key in ['onset', 'offset', 'frame']:
+            losses['loss/' + loss_key] = (losses['loss/' + loss_key]).mean()
 
         return predictions, losses
 
